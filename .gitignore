@@ -11,3 +11,7 @@ wheels/
 
 # vLLM source checkout (built from source on macOS)
 vllm-src/
+
+# skill-picker embedding cache sidecar
+**/.vectors.npy
+**/.vectors.json

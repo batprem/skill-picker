@@ -1,0 +1,32 @@
+[
+  {
+    "id": "pdf-table-extract",
+    "name": "PDF Table Extractor",
+    "full_description": "Extract tables from PDF files into structured rows and export them as CSV or JSON.",
+    "tags": ["pdf", "extraction"]
+  },
+  {
+    "id": "sql-explainer",
+    "name": "SQL Query Explainer",
+    "full_description": "Explain and optimize SQL database queries and suggest useful indexes for slow queries.",
+    "tags": ["sql", "database"]
+  },
+  {
+    "id": "git-bisect-helper",
+    "name": "Git Bisect Helper",
+    "full_description": "Guide a git bisect session to locate the regression commit in version history.",
+    "tags": ["git", "debugging"]
+  },
+  {
+    "id": "regex-builder",
+    "name": "Regex Builder",
+    "full_description": "Build and test patterns to match text, with explanations of each group.",
+    "tags": ["regex", "text"]
+  },
+  {
+    "id": "json-formatter",
+    "name": "JSON Formatter",
+    "full_description": "Format and validate JSON documents and pretty-print nested structures.",
+    "tags": ["json", "formatting"]
+  }
+]
