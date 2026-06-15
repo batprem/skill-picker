@@ -7,9 +7,9 @@ Derived from the Key Entities in [spec.md](./spec.md) and decisions in
 
 ## Entity: Skill
 
-The stored unit of a reusable agent capability. The single record holds both the
-lightweight matching metadata and the heavyweight full description; readers choose which
-part to load (Constitution II).
+The stored unit of a reusable agent capability — a row in the SQLite `skills` table holding
+both the lightweight matching metadata and the heavyweight full description; readers select
+which columns to load (Constitution II).
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
@@ -34,15 +34,16 @@ part to load (Constitution II).
 
 ## Entity: EmbeddingVector (cache entry)
 
-A cached embedding for one skill's matching text. Stored in the sidecar cache, not in the
-JSON record.
+A cached embedding for one skill's matching text — a row in the SQLite `vectors` table
+(separate from the `skills` table, so the metadata path never reads vectors).
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `skill_id` | string | yes | Foreign key → Skill.id |
-| `vector` | float32[dim] | yes | L2-normalized embedding of the skill's passage text. |
+| `skill_id` | string | yes | Primary key, foreign key → Skill.id (ON DELETE CASCADE). |
+| `vector` | BLOB (float32[dim]) | yes | L2-normalized embedding of the skill's passage text, stored as raw bytes. |
 | `embedding_signature` | string | yes | Identifies model + config (e.g. `e5-small-v2@pooling`). |
 | `source_hash` | string | yes | Hash of the exact passage text embedded; detects stale vectors. |
+| `dim` | integer | yes | Vector dimensionality (for decoding the BLOB). |
 
 **Validation rules**:
 
@@ -53,8 +54,8 @@ JSON record.
 
 ## Entity: SkillPool
 
-The shared collection that is the single source of truth (Constitution III). Not a record
-type — an aggregate with operations.
+The shared collection that is the single source of truth (Constitution III), backed by the
+SQLite `skills` table. Not a record type — an aggregate with operations.
 
 **Operations** (map to functional requirements):
 

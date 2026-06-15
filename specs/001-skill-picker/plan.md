@@ -26,9 +26,9 @@ model (matching the existing `test_embedding.py` reference), applying the e5 `qu
 **Primary Dependencies**: vLLM (pooling/embedding runner), NumPy (cosine similarity),
 FastAPI + Uvicorn (shared HTTP service / API contract), Pydantic (schemas/validation),
 Typer or argparse (CLI)
-**Storage**: Filesystem source of truth — JSON skill records under a pool directory, with
-embedding vectors cached in a sidecar file (e.g. `.npz`) keyed by skill id + embedding
-model signature; no external database
+**Storage**: SQLite source of truth — a single `.db` file with a `skills` table (records)
+and a `vectors` table (cached embeddings as BLOBs, stamped with model signature +
+source hash). No server, no deployment; chosen so the demo is zero-ops and portable
 **Testing**: pytest (unit + integration); a tiny labeled query→skill fixture set for
 retrieval-quality assertions
 **Target Platform**: Linux/macOS server, CPU-only (workspace builds vLLM for macOS CPU)
@@ -52,7 +52,7 @@ Derived from `.specify/memory/constitution.md` v1.0.0:
 |-----------|------|--------|
 | I. Vector-First Skill Selection | Selection ranks by vector similarity over embedded metadata; no bulk-load-and-decide path exists | PASS — design embeds name+short-desc and ranks by cosine |
 | II. Context Efficiency (NON-NEGOTIABLE) | Only metadata participates in search; full descriptions load lazily for top-K only; K configurable with small default | PASS — `select` returns metadata+scores; separate `load` endpoint fetches one full description |
-| III. Shared Skill Pool Integrity | Single shared source of truth; stable id/name/description; add/update/remove keeps index consistent | PASS — filesystem pool is the single source; index rebuilds from pool; removed skills are not returned |
+| III. Shared Skill Pool Integrity | Single shared source of truth; stable id/name/description; add/update/remove keeps index consistent | PASS — SQLite database is the single source; index rebuilds from pool; removed skills are not returned |
 | IV. vLLM as the Embedding Backbone | All embeddings via vLLM, same model+config for index and query; model signature recorded; model change triggers re-embed | PASS — single embedding component used both sides; model signature stored with cache; mismatch triggers re-embed |
 | V. Demo-Ready Simplicity & Observability | Runnable end-to-end with minimal setup; YAGNI; selection path surfaces candidates + scores | PASS — single package, brute-force index, scores returned in every selection response |
 
@@ -87,8 +87,9 @@ src/
 └── skill_picker/
     ├── __init__.py
     ├── models.py          # Skill, SkillMetadata, Candidate, SelectionResult (Pydantic)
+    ├── db.py              # SQLite connection + schema (skills + vectors tables)
     ├── embedding.py       # vLLM embedding wrapper (e5 prefixes, model signature)
-    ├── pool.py            # SkillPool: filesystem CRUD source of truth
+    ├── pool.py            # SkillPool + VectorCache: SQLite-backed source of truth
     ├── index.py           # In-memory cosine index built from cached embeddings
     ├── service.py         # Selection service: select() + load() orchestration
     ├── api.py             # FastAPI app exposing the HTTP contract
@@ -100,7 +101,7 @@ tests/
 └── fixtures/             # sample skills + labeled query→skill pairs (retrieval quality)
 
 data/
-└── skills/               # default shared pool (JSON records + embedding cache sidecar)
+└── skills.db             # default shared pool (SQLite: skills + cached vectors)
 ```
 
 **Structure Decision**: Single project (Option 1). The feature is one cohesive package

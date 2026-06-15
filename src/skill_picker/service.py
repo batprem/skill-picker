@@ -25,7 +25,7 @@ class SelectionService:
     def __init__(self, pool: SkillPool, embedder: Embedder, cache: VectorCache | None = None):
         self.pool = pool
         self.embedder = embedder
-        self.cache = cache if cache is not None else VectorCache(pool.dir)
+        self.cache = cache if cache is not None else VectorCache(pool.db_path)
         self.index = Index()
 
     @property
@@ -96,13 +96,13 @@ class SelectionService:
 
 
 def build_service(
-    pool_dir: str | Path = "data/skills",
+    db_path: str | Path = "data/skills.db",
     embedder_name: str = "vllm",
     **embedder_kwargs,
 ) -> SelectionService:
     """Convenience constructor used by the CLI and API."""
     from .embedding import make_embedder
 
-    pool = SkillPool(pool_dir)
+    pool = SkillPool(db_path)
     embedder = make_embedder(embedder_name, **embedder_kwargs)
     return SelectionService(pool, embedder)

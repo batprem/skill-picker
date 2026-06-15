@@ -1,8 +1,8 @@
-"""Filesystem-backed skill pool (single source of truth) and embedding vector cache.
+"""SQLite-backed skill pool (single source of truth) and embedding vector cache.
 
-Each skill is a JSON record at ``<pool>/<id>.json``. Embedding vectors live in a sidecar
-(``.vectors.npy`` + ``.vectors.json``) so the metadata read path never carries vectors and
-full descriptions are loaded only on demand (Constitution II/III).
+Both live in one SQLite file: the ``skills`` table holds records, the ``vectors`` table
+holds cached embeddings as BLOBs. The metadata read path never selects ``full_description``,
+so full text is loaded only on demand (Constitution II/III).
 """
 
 from __future__ import annotations
@@ -12,113 +12,98 @@ from pathlib import Path
 
 import numpy as np
 
+from .db import connect
 from .errors import SkillExistsError, SkillNotFoundError
 from .models import Skill, SkillInput, SkillMetadata, derive_match_text, now_iso
 
 
+def _row_to_skill(row) -> Skill:
+    return Skill(
+        id=row["id"],
+        name=row["name"],
+        match_text=row["match_text"],
+        full_description=row["full_description"],
+        tags=json.loads(row["tags"]),
+        updated_at=row["updated_at"],
+    )
+
+
 class VectorCache:
-    """Persisted cache of L2-normalized skill vectors, keyed by skill id.
+    """SQLite-backed cache of L2-normalized skill vectors, keyed by skill id.
 
     A cached vector is valid only if both the embedding ``signature`` and the
     ``source_hash`` of the embedded text still match (Constitution IV).
     """
 
-    def __init__(self, directory: str | Path):
-        self.dir = Path(directory)
-        self.vec_path = self.dir / ".vectors.npy"
-        self.meta_path = self.dir / ".vectors.json"
-        self.signature: str | None = None
-        self.dim: int | None = None
-        self._vectors: dict[str, np.ndarray] = {}
-        self._hashes: dict[str, str] = {}
-        self.load()
-
-    def load(self) -> None:
-        if not self.meta_path.exists() or not self.vec_path.exists():
-            return
-        meta = json.loads(self.meta_path.read_text())
-        self.signature = meta.get("signature")
-        self.dim = meta.get("dim")
-        ids = meta.get("ids", [])
-        self._hashes = dict(meta.get("hashes", {}))
-        mat = np.load(self.vec_path)
-        self._vectors = {sid: mat[i] for i, sid in enumerate(ids)}
-
-    def save(self) -> None:
-        self.dir.mkdir(parents=True, exist_ok=True)
-        ids = list(self._vectors)
-        if ids:
-            mat = np.stack([self._vectors[i] for i in ids]).astype(np.float32)
-        else:
-            mat = np.zeros((0, self.dim or 0), dtype=np.float32)
-        np.save(self.vec_path, mat)
-        self.meta_path.write_text(
-            json.dumps(
-                {"signature": self.signature, "dim": self.dim, "ids": ids, "hashes": self._hashes},
-                indent=2,
-            )
-        )
+    def __init__(self, db_path: str | Path):
+        self.db_path = Path(db_path)
+        self._conn = connect(self.db_path)
+        row = self._conn.execute("SELECT signature, dim FROM vectors LIMIT 1").fetchone()
+        self.signature: str | None = row["signature"] if row else None
+        self.dim: int | None = row["dim"] if row else None
 
     def get(self, skill_id: str, source_hash: str, signature: str) -> np.ndarray | None:
-        if signature != self.signature:
+        row = self._conn.execute(
+            "SELECT vector FROM vectors WHERE skill_id=? AND signature=? AND source_hash=?",
+            (skill_id, signature, source_hash),
+        ).fetchone()
+        if row is None:
             return None
-        if self._hashes.get(skill_id) != source_hash:
-            return None
-        return self._vectors.get(skill_id)
+        return np.frombuffer(row["vector"], dtype=np.float32)
 
     def put(self, skill_id: str, vector: np.ndarray, source_hash: str, signature: str) -> None:
         # A different active model invalidates the whole cache (Constitution IV).
         if self.signature is not None and signature != self.signature:
-            self._vectors.clear()
-            self._hashes.clear()
+            self._conn.execute("DELETE FROM vectors")
         self.signature = signature
         self.dim = int(len(vector))
-        self._vectors[skill_id] = np.asarray(vector, dtype=np.float32)
-        self._hashes[skill_id] = source_hash
+        blob = np.asarray(vector, dtype=np.float32).tobytes()
+        self._conn.execute(
+            "INSERT OR REPLACE INTO vectors (skill_id, signature, source_hash, dim, vector) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (skill_id, signature, source_hash, self.dim, blob),
+        )
 
     def delete(self, skill_id: str) -> None:
-        self._vectors.pop(skill_id, None)
-        self._hashes.pop(skill_id, None)
+        self._conn.execute("DELETE FROM vectors WHERE skill_id=?", (skill_id,))
+
+    def save(self) -> None:
+        """Commit staged vector writes."""
+        self._conn.commit()
 
     def ids(self) -> list[str]:
-        return list(self._vectors)
+        rows = self._conn.execute("SELECT skill_id FROM vectors").fetchall()
+        return [r["skill_id"] for r in rows]
 
 
 class SkillPool:
     """The shared collection of skills; the single source of truth (Constitution III)."""
 
-    def __init__(self, directory: str | Path):
-        self.dir = Path(directory)
-        self.dir.mkdir(parents=True, exist_ok=True)
-
-    def _path(self, skill_id: str) -> Path:
-        return self.dir / f"{skill_id}.json"
+    def __init__(self, db_path: str | Path):
+        self.db_path = Path(db_path)
+        self._conn = connect(self.db_path)
 
     def exists(self, skill_id: str) -> bool:
-        return self._path(skill_id).exists()
+        return self._conn.execute("SELECT 1 FROM skills WHERE id=?", (skill_id,)).fetchone() is not None
 
     def get(self, skill_id: str) -> Skill:
-        path = self._path(skill_id)
-        if not path.exists():
+        row = self._conn.execute("SELECT * FROM skills WHERE id=?", (skill_id,)).fetchone()
+        if row is None:
             raise SkillNotFoundError(skill_id)
-        return Skill.model_validate_json(path.read_text())
-
-    def _write(self, skill: Skill) -> None:
-        self._path(skill.id).write_text(skill.model_dump_json(indent=2))
+        return _row_to_skill(row)
 
     def add(self, data: SkillInput) -> Skill:
         if self.exists(data.id):
             raise SkillExistsError(data.id)
-        match_text = data.match_text or derive_match_text(data.full_description)
         skill = Skill(
             id=data.id,
             name=data.name,
-            match_text=match_text,
+            match_text=data.match_text or derive_match_text(data.full_description),
             full_description=data.full_description,
             tags=list(data.tags),
             updated_at=now_iso(),
         )
-        self._write(skill)
+        self._insert(skill)
         return skill
 
     def update(
@@ -143,30 +128,34 @@ class SkillPool:
         if tags is not None:
             skill.tags = list(tags)
         skill.updated_at = now_iso()
-        self._write(skill)
+        self._insert(skill)
         return skill
 
     def remove(self, skill_id: str) -> None:
-        path = self._path(skill_id)
-        if not path.exists():
+        cur = self._conn.execute("DELETE FROM skills WHERE id=?", (skill_id,))
+        if cur.rowcount == 0:
             raise SkillNotFoundError(skill_id)
-        path.unlink()
+        self._conn.commit()
 
     def list_full(self) -> list[Skill]:
-        skills = [Skill.model_validate_json(p.read_text()) for p in self._record_paths()]
-        return sorted(skills, key=lambda s: s.id)
+        rows = self._conn.execute("SELECT * FROM skills ORDER BY id").fetchall()
+        return [_row_to_skill(r) for r in rows]
 
     def list_metadata(self) -> list[SkillMetadata]:
-        """Skill metadata only — never carries full_description (Constitution II)."""
+        """Skill metadata only — never selects full_description (Constitution II)."""
+        rows = self._conn.execute(
+            "SELECT id, name, match_text, tags, updated_at FROM skills ORDER BY id"
+        ).fetchall()
         return [
             SkillMetadata(
-                id=s.id, name=s.name, match_text=s.match_text, tags=s.tags, updated_at=s.updated_at
+                id=r["id"],
+                name=r["name"],
+                match_text=r["match_text"],
+                tags=json.loads(r["tags"]),
+                updated_at=r["updated_at"],
             )
-            for s in self.list_full()
+            for r in rows
         ]
-
-    def _record_paths(self) -> list[Path]:
-        return [p for p in self.dir.glob("*.json") if not p.name.startswith(".")]
 
     def export(self) -> list[dict]:
         """Portable serialization of the whole pool (FR-014)."""
@@ -179,6 +168,21 @@ class SkillPool:
             skill = Skill.model_validate(rec)
             if self.exists(skill.id) and not overwrite:
                 continue
-            self._write(skill)
+            self._insert(skill)
             count += 1
         return count
+
+    def _insert(self, skill: Skill) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO skills (id, name, match_text, full_description, tags, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                skill.id,
+                skill.name,
+                skill.match_text,
+                skill.full_description,
+                json.dumps(skill.tags),
+                skill.updated_at,
+            ),
+        )
+        self._conn.commit()

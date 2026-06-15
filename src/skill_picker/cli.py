@@ -19,7 +19,7 @@ from .service import SelectionService, build_service
 
 app = typer.Typer(help="Skill Picker: vector-similarity skill selection (vLLM-backed).")
 
-DEFAULT_POOL = "data/skills"
+DEFAULT_POOL = "data/skills.db"
 
 # Exit codes per contracts/cli.md: 0 ok, 2 usage, 3 not found, 4 conflict.
 EXIT_USAGE = 2
@@ -35,7 +35,7 @@ def _read_description(value: str) -> str:
 
 
 def _service(pool: str, embedder: str) -> SelectionService:
-    return build_service(pool_dir=pool, embedder_name=embedder)
+    return build_service(db_path=pool, embedder_name=embedder)
 
 
 def _pool(pool: str) -> SkillPool:
@@ -48,7 +48,7 @@ def select(
     top_k: int = typer.Option(5, "-k", "--top-k", help="Max candidates."),
     threshold: float = typer.Option(0.0, "-t", "--threshold", help="Min cosine score."),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of a table."),
-    pool: str = typer.Option(DEFAULT_POOL, "--pool", help="Shared pool directory."),
+    pool: str = typer.Option(DEFAULT_POOL, "--pool", help="Shared SQLite pool file."),
     embedder: str = typer.Option("vllm", "--embedder", help="vllm (default) or hashing."),
 ):
     """Rank skills by similarity to QUERY (metadata + scores only)."""

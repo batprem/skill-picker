@@ -6,7 +6,8 @@ Coding agents normally load every skill's name and description to decide which t
 which floods the context window. Skill Picker instead embeds each skill's matching metadata
 into a vector (via vLLM), ranks skills by similarity to the incoming task, and returns a
 short scored shortlist — loading the full description only for the skill the agent actually
-picks. The pool is a single shared source of truth a whole team can reuse.
+picks. The pool is a single shared source of truth a whole team can reuse — stored as one
+zero-deployment SQLite file (`data/skills.db`) holding both skills and their cached vectors.
 
 See [`specs/001-skill-picker/`](specs/001-skill-picker/) for the spec, plan, and design.
 
@@ -23,7 +24,7 @@ uv pip install -e ".[dev]" --no-deps   # adds pytest + httpx for the test suite
 ## Usage
 
 ```bash
-# Add skills to the shared pool (data/skills by default)
+# Add skills to the shared pool (SQLite file data/skills.db by default)
 skill-picker add --id git-bisect-helper --name "Git Bisect Helper" \
   --description "Guide a git bisect session to locate a regression commit."
 

@@ -83,7 +83,7 @@ Start the FastAPI service exposing the HTTP contract.
 |--------|---------|
 | `--host <host>` | 127.0.0.1 |
 | `--port <int>` | 8000 |
-| `--pool <dir>` | `data/skills` |
+| `--pool <path>` | `data/skills.db` |
 
 ---
 
@@ -96,7 +96,7 @@ stale or whose `embedding_signature` no longer matches the active model (Constit
 
 ## Cross-cutting CLI rules
 
-- `--pool <dir>` (global) selects the shared pool directory; defaults to `data/skills` so a
-  team can point every member at one shared location.
+- `--pool <path>` (global) selects the shared SQLite pool file; defaults to `data/skills.db`
+  so a team can point every member at one shared database file.
 - Identical inputs produce identical ranked output (FR-013).
 - Exit codes: `0` success (incl. empty result), `2` usage error, `3` not found, `4` conflict.

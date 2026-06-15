@@ -23,7 +23,7 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 - Source: `src/skill_picker/`
 - Tests: `tests/unit/`, `tests/integration/`, `tests/fixtures/`
-- Shared pool data: `data/skills/`
+- Shared pool data: `data/skills.db` (SQLite)
 
 ---
 
@@ -34,7 +34,7 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 - [x] T001 Create source layout `src/skill_picker/` with `__init__.py`, and test dirs `tests/unit/`, `tests/integration/`, `tests/fixtures/` per plan.md
 - [x] T002 Add runtime dependencies (vllm, numpy, fastapi, uvicorn, pydantic, typer) and a `skill-picker` console-script entry point in `pyproject.toml`
 - [x] T003 [P] Add dev dependencies (pytest) and configure pytest in `pyproject.toml`
-- [x] T004 [P] Create default pool directory `data/skills/.gitkeep` and ignore the embedding cache sidecar in `.gitignore`
+- [x] T004 [P] Create default pool directory `data/skills/.gitkeep` and ignore the SQLite pool database (`data/*.db`, `*.db-wal`, `*.db-shm`) in `.gitignore`
 
 ---
 
@@ -46,8 +46,8 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 - [x] T005 [P] Define Pydantic models (Skill, SkillMetadata, Candidate, SelectionResult, SelectionQuery) in `src/skill_picker/models.py` per data-model.md
 - [x] T006 [P] Implement vLLM embedding wrapper in `src/skill_picker/embedding.py`: e5 `query:`/`passage:` prefixing, L2 normalization, and an `embedding_signature` (e.g. `e5-small-v2@pooling`) per research R1/R4
-- [x] T007 Implement filesystem `SkillPool` storage in `src/skill_picker/pool.py`: per-skill JSON records under the pool dir, `match_text` derivation from `full_description`, and `list_metadata()` that excludes `full_description` (FR-002, FR-006) — depends on T005
-- [x] T008 Implement embedding cache sidecar in `src/skill_picker/pool.py` (or `cache` helper): `.npz` keyed by skill id with `embedding_signature` + `source_hash` validity checks per data-model.md — depends on T006, T007
+- [x] T007 Implement SQLite `SkillPool` storage in `src/skill_picker/pool.py` (schema in `src/skill_picker/db.py`): `skills` table, `match_text` derivation from `full_description`, and `list_metadata()` that excludes `full_description` (FR-002, FR-006) — depends on T005
+- [x] T008 Implement embedding `VectorCache` in `src/skill_picker/pool.py`: `vectors` table (BLOB) keyed by skill id with `embedding_signature` + `source_hash` validity checks per data-model.md — depends on T006, T007
 - [x] T009 Implement in-memory cosine `Index` in `src/skill_picker/index.py`: normalized-vector matrix, brute-force top-K with threshold, deterministic tie-break by id (FR-004, FR-012, FR-013) — depends on T005
 - [x] T010 Implement `SelectionService` skeleton in `src/skill_picker/service.py` wiring pool + cache + index (build/refresh index from pool metadata + valid vectors) — depends on T007, T008, T009
 - [x] T011 [P] Create shared sample pool + labeled `query → expected skill id` fixtures in `tests/fixtures/` per quickstart.md/research R6

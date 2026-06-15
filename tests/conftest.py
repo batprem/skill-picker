@@ -32,7 +32,7 @@ def labeled_queries() -> list[dict]:
 
 @pytest.fixture
 def pool(tmp_path) -> SkillPool:
-    return SkillPool(tmp_path / "skills")
+    return SkillPool(tmp_path / "skills.db")
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def embedder() -> HashingEmbedder:
 
 @pytest.fixture
 def service(pool, embedder) -> SelectionService:
-    return SelectionService(pool, embedder, VectorCache(pool.dir))
+    return SelectionService(pool, embedder, VectorCache(pool.db_path))
 
 
 @pytest.fixture

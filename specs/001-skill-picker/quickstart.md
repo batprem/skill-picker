@@ -36,7 +36,8 @@ skill-picker add --id git-bisect-helper \
   --description "Guide a git bisect session to locate a regression commit."
 ```
 
-Records land in `data/skills/` (the shared source of truth); embeddings are cached there.
+Records land in `data/skills.db` (the shared SQLite source of truth); embeddings are cached
+in the same file.
 
 ## 3. Select skills for a task (the core demo)
 
@@ -95,7 +96,7 @@ curl -s localhost:8000/v1/skills/sql-explainer
 
 - Changing the embedding model invalidates cached vectors; run `skill-picker reindex` to
   re-embed the pool (the active model signature is shown by `GET /v1/health`).
-- Point every team member's `--pool` at one shared directory to share the same skills.
+- Point every team member's `--pool` at one shared SQLite file to share the same skills.
 - **Offline / dev**: `select`, `reindex`, and `serve` accept `--embedder hashing`, a
   deterministic lexical embedder that needs no model load. It is for development and tests
   only (not semantic); production selection uses `--embedder vllm` (the default).

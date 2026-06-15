@@ -36,26 +36,29 @@ decisions needed before design.
 
 ## R3. Shared pool storage (source of truth)
 
-- **Decision**: Filesystem-backed pool: one JSON record per skill (or a single JSON file)
-  under a pool directory, plus an embedding cache sidecar (`.npz`) holding vectors keyed by
-  skill id and stamped with an `embedding_signature` (model id + config). The directory is
-  the single source of truth a team shares (e.g. via a shared volume or git).
-- **Rationale**: Zero infrastructure, human-readable, portable/exportable (FR-014), and
-  easy to demo. Separating the JSON record (metadata + full description) from the vector
-  cache lets selection read only metadata + vectors and load full descriptions lazily
-  (Constitution II).
+- **Decision (updated)**: SQLite-backed pool — a single `.db` file with a `skills` table
+  (records) and a `vectors` table (cached embeddings as BLOBs, stamped with
+  `embedding_signature` + `source_hash`). The metadata read path selects only id/name/
+  match_text (never `full_description`). The single file is the source of truth a team
+  shares (shared volume, synced, or committed).
+- **Rationale**: Still zero-infrastructure and single-file — no server to deploy or operate
+  (the deciding factor for this demo) — while adding real transactional integrity, atomic
+  add/update/remove, indexed lookups, and one artifact to copy/back up. Keeping records and
+  vectors as separate tables preserves lazy loading of full descriptions (Constitution II).
 - **Alternatives considered**:
-  - SQLite — viable and still single-file, but JSON is more transparent for a demo and for
-    manual team edits; can migrate later without changing the contract.
-  - Embedding vectors inline in JSON — rejected: bloats records and slows the metadata read
-    path; a binary sidecar keeps the hot path lean.
+  - Filesystem JSON + `.npz` sidecar (the original plan) — superseded: more moving parts
+    (record file + binary sidecar to keep in sync), no transactions, and two artifacts
+    instead of one. SQLite gives a cleaner single-file story with the same zero-ops profile.
+  - Postgres / a vector DB — rejected: requires deployment and operations, the exact cost
+    the user wants to avoid; unnecessary at tens–hundreds of skills.
 
 ## R4. Index/pool consistency on change
 
-- **Decision**: On add/update, (re)embed only the changed skill and update its cache entry;
-  on remove, delete the record and its cache entry. The in-memory index is (re)built from
-  the pool + cache at service start and refreshed when the pool changes. If a cached vector's
-  `embedding_signature` does not match the active model, that skill is re-embedded.
+- **Decision**: On add/update, (re)embed only the changed skill and upsert its row in the
+  `vectors` table; on remove, delete the skill row (and its vector). The in-memory index is
+  (re)built from the pool + cached vectors at service start and refreshed when the pool
+  changes. If a cached vector's `embedding_signature` does not match the active model, that
+  skill is re-embedded.
 - **Rationale**: Guarantees present skills are discoverable and removed ones are not (FR-011,
   SC-004), and enforces the "model change ⇒ re-embed, never silent mismatch" rule
   (Constitution IV).

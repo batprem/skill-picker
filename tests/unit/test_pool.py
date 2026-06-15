@@ -65,7 +65,7 @@ def test_export_import_roundtrip(pool, tmp_path):
     pool.add(SkillInput(id="y", name="Y", full_description="two"))
     records = pool.export()
 
-    other = SkillPool(tmp_path / "other")
+    other = SkillPool(tmp_path / "other.db")
     written = other.import_(records)
     assert written == 2
     assert {s.id for s in other.list_full()} == {"x", "y"}
@@ -77,7 +77,7 @@ def test_cache_invalidates_on_text_change(pool):
     from skill_picker.service import SelectionService, _source_hash
     from skill_picker.embedding import passage_text
 
-    svc = SelectionService(pool, HashingEmbedder(dim=128), VectorCache(pool.dir))
+    svc = SelectionService(pool, HashingEmbedder(dim=128), VectorCache(pool.db_path))
     pool.add(SkillInput(id="x", name="Name One", full_description="alpha beta"))
     svc.select("alpha", k=3)  # triggers embed + cache
     sig = svc.embedding_signature

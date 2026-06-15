@@ -14,8 +14,8 @@ from skill_picker.service import SelectionService
 
 @pytest.fixture
 def client(tmp_path, sample_skills):
-    pool = SkillPool(tmp_path / "skills")
-    svc = SelectionService(pool, HashingEmbedder(dim=512), VectorCache(pool.dir))
+    pool = SkillPool(tmp_path / "skills.db")
+    svc = SelectionService(pool, HashingEmbedder(dim=512), VectorCache(pool.db_path))
     for rec in sample_skills:
         pool.add(SkillInput(**rec))
     return TestClient(create_app(svc))
