@@ -96,3 +96,10 @@ curl -s localhost:8000/v1/skills/sql-explainer
 - Changing the embedding model invalidates cached vectors; run `skill-picker reindex` to
   re-embed the pool (the active model signature is shown by `GET /v1/health`).
 - Point every team member's `--pool` at one shared directory to share the same skills.
+- **Offline / dev**: `select`, `reindex`, and `serve` accept `--embedder hashing`, a
+  deterministic lexical embedder that needs no model load. It is for development and tests
+  only (not semantic); production selection uses `--embedder vllm` (the default).
+- **CPU memory**: on the CPU backend, vLLM reserves a fraction of RAM controlled by
+  `gpu_memory_utilization` (despite the name). On a constrained machine, construct the
+  embedder with a lower value (e.g. `VLLMEmbedder(gpu_memory_utilization=0.3)`) if engine
+  startup reports insufficient memory.

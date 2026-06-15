@@ -31,10 +31,10 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 **Purpose**: Project initialization and dependencies
 
-- [ ] T001 Create source layout `src/skill_picker/` with `__init__.py`, and test dirs `tests/unit/`, `tests/integration/`, `tests/fixtures/` per plan.md
-- [ ] T002 Add runtime dependencies (vllm, numpy, fastapi, uvicorn, pydantic, typer) and a `skill-picker` console-script entry point in `pyproject.toml`
-- [ ] T003 [P] Add dev dependencies (pytest) and configure pytest in `pyproject.toml`
-- [ ] T004 [P] Create default pool directory `data/skills/.gitkeep` and ignore the embedding cache sidecar in `.gitignore`
+- [x] T001 Create source layout `src/skill_picker/` with `__init__.py`, and test dirs `tests/unit/`, `tests/integration/`, `tests/fixtures/` per plan.md
+- [x] T002 Add runtime dependencies (vllm, numpy, fastapi, uvicorn, pydantic, typer) and a `skill-picker` console-script entry point in `pyproject.toml`
+- [x] T003 [P] Add dev dependencies (pytest) and configure pytest in `pyproject.toml`
+- [x] T004 [P] Create default pool directory `data/skills/.gitkeep` and ignore the embedding cache sidecar in `.gitignore`
 
 ---
 
@@ -44,13 +44,13 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 [P] Define Pydantic models (Skill, SkillMetadata, Candidate, SelectionResult, SelectionQuery) in `src/skill_picker/models.py` per data-model.md
-- [ ] T006 [P] Implement vLLM embedding wrapper in `src/skill_picker/embedding.py`: e5 `query:`/`passage:` prefixing, L2 normalization, and an `embedding_signature` (e.g. `e5-small-v2@pooling`) per research R1/R4
-- [ ] T007 Implement filesystem `SkillPool` storage in `src/skill_picker/pool.py`: per-skill JSON records under the pool dir, `match_text` derivation from `full_description`, and `list_metadata()` that excludes `full_description` (FR-002, FR-006) — depends on T005
-- [ ] T008 Implement embedding cache sidecar in `src/skill_picker/pool.py` (or `cache` helper): `.npz` keyed by skill id with `embedding_signature` + `source_hash` validity checks per data-model.md — depends on T006, T007
-- [ ] T009 Implement in-memory cosine `Index` in `src/skill_picker/index.py`: normalized-vector matrix, brute-force top-K with threshold, deterministic tie-break by id (FR-004, FR-012, FR-013) — depends on T005
-- [ ] T010 Implement `SelectionService` skeleton in `src/skill_picker/service.py` wiring pool + cache + index (build/refresh index from pool metadata + valid vectors) — depends on T007, T008, T009
-- [ ] T011 [P] Create shared sample pool + labeled `query → expected skill id` fixtures in `tests/fixtures/` per quickstart.md/research R6
+- [x] T005 [P] Define Pydantic models (Skill, SkillMetadata, Candidate, SelectionResult, SelectionQuery) in `src/skill_picker/models.py` per data-model.md
+- [x] T006 [P] Implement vLLM embedding wrapper in `src/skill_picker/embedding.py`: e5 `query:`/`passage:` prefixing, L2 normalization, and an `embedding_signature` (e.g. `e5-small-v2@pooling`) per research R1/R4
+- [x] T007 Implement filesystem `SkillPool` storage in `src/skill_picker/pool.py`: per-skill JSON records under the pool dir, `match_text` derivation from `full_description`, and `list_metadata()` that excludes `full_description` (FR-002, FR-006) — depends on T005
+- [x] T008 Implement embedding cache sidecar in `src/skill_picker/pool.py` (or `cache` helper): `.npz` keyed by skill id with `embedding_signature` + `source_hash` validity checks per data-model.md — depends on T006, T007
+- [x] T009 Implement in-memory cosine `Index` in `src/skill_picker/index.py`: normalized-vector matrix, brute-force top-K with threshold, deterministic tie-break by id (FR-004, FR-012, FR-013) — depends on T005
+- [x] T010 Implement `SelectionService` skeleton in `src/skill_picker/service.py` wiring pool + cache + index (build/refresh index from pool metadata + valid vectors) — depends on T007, T008, T009
+- [x] T011 [P] Create shared sample pool + labeled `query → expected skill id` fixtures in `tests/fixtures/` per quickstart.md/research R6
 
 **Checkpoint**: Core embedding, storage, and index ready — user stories can begin
 
@@ -64,16 +64,16 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] Retrieval-quality integration test in `tests/integration/test_retrieval_quality.py`: asserts intended skill in top-K for ≥90% of fixture pairs (SC-001)
-- [ ] T013 [P] [US1] Context-efficiency test in `tests/integration/test_context_efficiency.py`: asserts `select` output contains no `full_description` and `load` returns exactly one (SC-003, Constitution II)
-- [ ] T014 [P] [US1] Unit test for cosine ranking/threshold/tie-break determinism in `tests/unit/test_index.py` (FR-004, FR-012, FR-013)
+- [x] T012 [P] [US1] Retrieval-quality integration test in `tests/integration/test_retrieval_quality.py`: asserts intended skill in top-K for ≥90% of fixture pairs (SC-001)
+- [x] T013 [P] [US1] Context-efficiency test in `tests/integration/test_context_efficiency.py`: asserts `select` output contains no `full_description` and `load` returns exactly one (SC-003, Constitution II)
+- [x] T014 [P] [US1] Unit test for cosine ranking/threshold/tie-break determinism in `tests/unit/test_index.py` (FR-004, FR-012, FR-013)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `SelectionService.select(query, k, threshold)` in `src/skill_picker/service.py`: embed query, rank, return Candidates (metadata + scores only), default k=5 (FR-003, FR-004, FR-006)
-- [ ] T016 [US1] Implement `SelectionService.load(skill_id)` in `src/skill_picker/service.py`: return one full Skill record (FR-005) — depends on T015
-- [ ] T017 [P] [US1] Implement CLI `select` and `show` commands in `src/skill_picker/cli.py` with `-k`/`-t`/`--json` per contracts/cli.md — depends on T015, T016
-- [ ] T018 [P] [US1] Implement HTTP `POST /v1/select` and `GET /v1/skills/{id}` in `src/skill_picker/api.py` per contracts/http-api.md (404 on missing id) — depends on T015, T016
+- [x] T015 [US1] Implement `SelectionService.select(query, k, threshold)` in `src/skill_picker/service.py`: embed query, rank, return Candidates (metadata + scores only), default k=5 (FR-003, FR-004, FR-006)
+- [x] T016 [US1] Implement `SelectionService.load(skill_id)` in `src/skill_picker/service.py`: return one full Skill record (FR-005) — depends on T015
+- [x] T017 [P] [US1] Implement CLI `select` and `show` commands in `src/skill_picker/cli.py` with `-k`/`-t`/`--json` per contracts/cli.md — depends on T015, T016
+- [x] T018 [P] [US1] Implement HTTP `POST /v1/select` and `GET /v1/skills/{id}` in `src/skill_picker/api.py` per contracts/http-api.md (404 on missing id) — depends on T015, T016
 
 **Checkpoint**: US1 fully functional — selection + lazy load work end-to-end and pass tests (MVP)
 
@@ -87,16 +87,16 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Pool-consistency integration test in `tests/integration/test_pool_consistency.py`: add→select, update→select, remove→select reflect changes within the next cycle (FR-007/008/009/011, SC-004)
-- [ ] T020 [P] [US2] Unit test for pool CRUD + cache invalidation on text change in `tests/unit/test_pool.py` (FR-008, Constitution IV re-embed)
+- [x] T019 [P] [US2] Pool-consistency integration test in `tests/integration/test_pool_consistency.py`: add→select, update→select, remove→select reflect changes within the next cycle (FR-007/008/009/011, SC-004)
+- [x] T020 [P] [US2] Unit test for pool CRUD + cache invalidation on text change in `tests/unit/test_pool.py` (FR-008, Constitution IV re-embed)
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement `SkillPool.add/update/remove` with embed-on-change and cache update/delete in `src/skill_picker/pool.py` (FR-007, FR-008, FR-009) — depends on Foundational
-- [ ] T022 [US2] Implement `reindex` in `src/skill_picker/service.py`: rebuild index, re-embed stale or signature-mismatched skills (Constitution IV) — depends on T021
-- [ ] T023 [P] [US2] Implement CLI `add`, `update`, `remove`, `list`, `reindex` commands in `src/skill_picker/cli.py` per contracts/cli.md — depends on T021, T022
-- [ ] T024 [P] [US2] Implement HTTP `POST/PUT/DELETE /v1/skills`, `GET /v1/skills` (metadata only) in `src/skill_picker/api.py` (201/200/204, 409 conflict, 404 missing) — depends on T021
-- [ ] T025 [US2] Implement pool `export()`/`import()` for portable sharing in `src/skill_picker/pool.py` (FR-014) — depends on T021
+- [x] T021 [US2] Implement `SkillPool.add/update/remove` with embed-on-change and cache update/delete in `src/skill_picker/pool.py` (FR-007, FR-008, FR-009) — depends on Foundational
+- [x] T022 [US2] Implement `reindex` in `src/skill_picker/service.py`: rebuild index, re-embed stale or signature-mismatched skills (Constitution IV) — depends on T021
+- [x] T023 [P] [US2] Implement CLI `add`, `update`, `remove`, `list`, `reindex` commands in `src/skill_picker/cli.py` per contracts/cli.md — depends on T021, T022
+- [x] T024 [P] [US2] Implement HTTP `POST/PUT/DELETE /v1/skills`, `GET /v1/skills` (metadata only) in `src/skill_picker/api.py` (201/200/204, 409 conflict, 404 missing) — depends on T021
+- [x] T025 [US2] Implement pool `export()`/`import()` for portable sharing in `src/skill_picker/pool.py` (FR-014) — depends on T021
 
 **Checkpoint**: US1 and US2 both work independently — shared pool is fully manageable
 
@@ -110,12 +110,12 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Observability test in `tests/integration/test_score_inspection.py`: every candidate carries a comparable score and scores are exposed via CLI and API (SC-006)
+- [x] T026 [P] [US3] Observability test in `tests/integration/test_score_inspection.py`: every candidate carries a comparable score and scores are exposed via CLI and API (SC-006)
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Render a human-readable score table (score/id/name) for CLI `select` default output in `src/skill_picker/cli.py` per contracts/cli.md (Constitution V) — depends on T017
-- [ ] T028 [P] [US3] Implement `GET /v1/health` returning status, `embedding_signature`, and `pool_size` in `src/skill_picker/api.py` (Constitution IV/V observability) — depends on T018
+- [x] T027 [US3] Render a human-readable score table (score/id/name) for CLI `select` default output in `src/skill_picker/cli.py` per contracts/cli.md (Constitution V) — depends on T017
+- [x] T028 [P] [US3] Implement `GET /v1/health` returning status, `embedding_signature`, and `pool_size` in `src/skill_picker/api.py` (Constitution IV/V observability) — depends on T018
 
 **Checkpoint**: All user stories independently functional and demonstrable
 
@@ -125,10 +125,10 @@ are targeted (retrieval quality, pool consistency, context-efficiency), not exha
 
 **Purpose**: Improvements spanning multiple stories
 
-- [ ] T029 [P] Add a performance check that `select` returns in <1s for a pool of ≥100 skills in `tests/integration/test_performance.py` (SC-002)
-- [ ] T030 [P] Validate quickstart end-to-end and update `specs/001-skill-picker/quickstart.md` if commands/paths drift
-- [ ] T031 [P] Add input validation + friendly error messages/exit codes across CLI and API per contracts (usage/not-found/conflict)
-- [ ] T032 [P] Add README usage section for skill-picker (install, seed pool, select, serve) in `README.md`
+- [x] T029 [P] Add a performance check that `select` returns in <1s for a pool of ≥100 skills in `tests/integration/test_performance.py` (SC-002)
+- [x] T030 [P] Validate quickstart end-to-end and update `specs/001-skill-picker/quickstart.md` if commands/paths drift
+- [x] T031 [P] Add input validation + friendly error messages/exit codes across CLI and API per contracts (usage/not-found/conflict)
+- [x] T032 [P] Add README usage section for skill-picker (install, seed pool, select, serve) in `README.md`
 
 ---
 

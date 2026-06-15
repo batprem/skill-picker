@@ -1,0 +1,7 @@
+[
+  { "query": "extract tables from a pdf document", "expected_id": "pdf-table-extract" },
+  { "query": "optimize a slow sql query with indexes", "expected_id": "sql-explainer" },
+  { "query": "find the commit that introduced a regression with git bisect", "expected_id": "git-bisect-helper" },
+  { "query": "build a pattern to match text", "expected_id": "regex-builder" },
+  { "query": "validate and format a json document", "expected_id": "json-formatter" }
+]
