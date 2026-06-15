@@ -1,0 +1,7 @@
+[project]
+name = "vllm-workspace"
+version = "0.1.0"
+description = "Workspace for building/running vLLM from source on macOS (CPU)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
