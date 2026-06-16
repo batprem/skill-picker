@@ -48,6 +48,18 @@ SQLite file).
 > **Notes:** Mention adds are instant and land in one SQLite file (zero deployment). Embeddings
 > are computed lazily and cached in the same `.db`, so the first `select` is what populates them.
 
+**Maps to the `SKILL.md` standard.** `--description` is the short frontmatter-style text that
+gets *embedded and matched* (selection); `--body` is the full content loaded only after a skill
+is picked. The five seeds above pass only `--description`, so the body falls back to it — fine for
+a toy. To ingest a real skill, keep selection cheap and load the body lazily:
+
+```bash
+.venv/bin/skill-picker add --pool data/demo.db --id git-bisect-helper \
+  --name "Git Bisect Helper" \
+  --description "Guide a git bisect session to locate a regression commit." \  # frontmatter description → embedded
+  --body @skills/git-bisect-helper/SKILL.md                                    # full body → lazy-loaded only
+```
+
 ---
 
 ## Step 1 — Show the shared pool (slide 16)

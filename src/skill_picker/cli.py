@@ -27,8 +27,8 @@ EXIT_NOT_FOUND = 3
 EXIT_CONFLICT = 4
 
 
-def _read_description(value: str) -> str:
-    """Support '@path' to read a description from a file."""
+def _read_text(value: str) -> str:
+    """Support '@path' to read text from a file."""
     if value.startswith("@"):
         return Path(value[1:]).read_text()
     return value
@@ -94,18 +94,28 @@ def show(
 def add(
     id: str = typer.Option(..., "--id", help="Stable unique id."),
     name: str = typer.Option(..., "--name"),
-    description: str = typer.Option(..., "--description", help="Full text or @path."),
-    match_text: Optional[str] = typer.Option(None, "--match-text"),
+    description: str = typer.Option(
+        ...,
+        "--description",
+        help="Short selection text (≈ SKILL.md frontmatter description); embedded for matching. Text or @path.",
+    ),
+    body: Optional[str] = typer.Option(
+        None,
+        "--body",
+        help="Full skill body (≈ SKILL.md body); returned only by show/load. Text or @path. Defaults to --description.",
+    ),
     tags: Optional[str] = typer.Option(None, "--tags", help="Comma-separated."),
     pool: str = typer.Option(DEFAULT_POOL, "--pool"),
 ):
     """Add a skill to the shared pool."""
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
+    match = _read_text(description)
+    full = _read_text(body) if body is not None else match
     data = SkillInput(
         id=id,
         name=name,
-        full_description=_read_description(description),
-        match_text=match_text,
+        full_description=full,
+        match_text=match,
         tags=tag_list,
     )
     try:
@@ -120,23 +130,31 @@ def add(
 def update(
     skill_id: str = typer.Argument(...),
     name: Optional[str] = typer.Option(None, "--name"),
-    description: Optional[str] = typer.Option(None, "--description", help="Full text or @path."),
-    match_text: Optional[str] = typer.Option(None, "--match-text"),
+    description: Optional[str] = typer.Option(
+        None, "--description", help="New short selection text (embedded for matching). Text or @path."
+    ),
+    body: Optional[str] = typer.Option(
+        None, "--body", help="New full skill body (returned only by show/load). Text or @path."
+    ),
     tags: Optional[str] = typer.Option(None, "--tags"),
     pool: str = typer.Option(DEFAULT_POOL, "--pool"),
 ):
-    """Update an existing skill (re-embeds on next selection if text changed)."""
-    fields: dict = {}
-    if name is not None:
-        fields["name"] = name
-    if description is not None:
-        fields["full_description"] = _read_description(description)
-    if match_text is not None:
-        fields["match_text"] = match_text
-    if tags is not None:
-        fields["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
+    """Update an existing skill (re-embeds on next selection if the selection text changed)."""
     try:
-        _pool(pool).update(skill_id, **fields)
+        p = _pool(pool)
+        fields: dict = {}
+        if name is not None:
+            fields["name"] = name
+        if description is not None:
+            fields["match_text"] = _read_text(description)
+        if body is not None:
+            fields["full_description"] = _read_text(body)
+            if description is None:
+                # Updating only the body must not let the selection text re-derive from it.
+                fields["match_text"] = p.get(skill_id).match_text
+        if tags is not None:
+            fields["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
+        p.update(skill_id, **fields)
     except SkillNotFoundError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(EXIT_NOT_FOUND)

@@ -233,12 +233,15 @@ task query ─► vLLM embed (query:) ─┐
 
 ```
 $ skill-picker add --id git-bisect-helper --name "Git Bisect Helper" \
-    --description "Guide a git bisect session to locate a regression commit."
+    --description "Guide a git bisect session to locate a regression commit." \
+    --body @skills/git-bisect-helper/SKILL.md
 $ skill-picker list
 ```
 
 > **Notes**: Show that adding is cheap and the pool is one SQLite file (zero deployment).
-> Mention embeddings are computed lazily / cached in the same DB — adding doesn't block.
+> Mention embeddings are computed lazily / cached in the same DB — adding doesn't block. Call
+> out the SKILL.md mapping: `--description` is the short frontmatter text we *embed and match*;
+> `--body` is the full content loaded only after selection. Same two-tier shape as real skills.
 
 ---
 
@@ -280,7 +283,8 @@ Guide a git bisect session to locate a regression commit.
 
 ```
 $ skill-picker serve --port 8000
-$ curl localhost:8000/v1/select -d '{"query":"speed up a slow report","k":3}'
+$ curl localhost:8000/v1/select -H 'content-type: application/json' \
+    -d '{"query":"speed up a slow report","k":3}'
 $ curl localhost:8000/v1/health      # model signature + pool size
 ```
 

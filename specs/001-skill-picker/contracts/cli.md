@@ -43,15 +43,20 @@ Exit non-zero if `id` does not exist (FR-011).
 
 Add a skill to the shared pool (FR-007).
 
+Field naming mirrors the Agent Skills (`SKILL.md`) standard: `--description` is the short
+frontmatter-style text used to *select* the skill (embedded for matching), and `--body` is the
+full content loaded only after selection.
+
 | Option | Required | Notes |
 |--------|----------|-------|
 | `--id <id>` | yes | Stable unique id. |
 | `--name <name>` | yes | Skill name. |
-| `--description <text>` | yes | Full description (file path allowed via `@path`). |
-| `--match-text <text>` | no | Short matching text; derived from description if omitted. |
+| `--description <text>` | yes | Short selection text (≈ SKILL.md frontmatter `description`); embedded for matching. `@path` allowed. Stored as `match_text`. |
+| `--body <text>` | no | Full skill body (≈ SKILL.md body); returned only by `show`/`load`. `@path` allowed. Defaults to `--description`. Stored as `full_description`. |
 | `--tags <a,b,c>` | no | Comma-separated tags. |
 
-Embeds and caches the vector on add. Errors if `id` already exists.
+Embeds and caches the vector (from `--description`) on first selection. Errors if `id` already
+exists.
 
 ---
 

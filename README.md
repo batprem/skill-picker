@@ -24,9 +24,12 @@ uv pip install -e ".[dev]" --no-deps   # adds pytest + httpx for the test suite
 ## Usage
 
 ```bash
-# Add skills to the shared pool (SQLite file data/skills.db by default)
+# Add skills to the shared pool (SQLite file data/skills.db by default).
+# Mirrors the SKILL.md standard: --description is the short text we embed & match on;
+# --body is the full content loaded only after selection (defaults to --description).
 skill-picker add --id git-bisect-helper --name "Git Bisect Helper" \
-  --description "Guide a git bisect session to locate a regression commit."
+  --description "Guide a git bisect session to locate a regression commit." \
+  --body @skills/git-bisect-helper/SKILL.md
 
 # Rank skills for a task — returns metadata + scores only, no full descriptions
 skill-picker select "find which commit broke the build" -k 3
