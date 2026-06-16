@@ -34,8 +34,13 @@ def _read_description(value: str) -> str:
     return value
 
 
-def _service(pool: str, embedder: str) -> SelectionService:
-    return build_service(db_path=pool, embedder_name=embedder)
+def _service(pool: str, embedder: str, gpu_memory_utilization: Optional[float] = None) -> SelectionService:
+    kwargs: dict = {}
+    # On the CPU backend vLLM reserves a fraction of RAM (despite the flag's name); on a
+    # constrained machine pass a low value so the engine can start. Only forwarded to vllm.
+    if embedder == "vllm" and gpu_memory_utilization is not None:
+        kwargs["gpu_memory_utilization"] = gpu_memory_utilization
+    return build_service(db_path=pool, embedder_name=embedder, **kwargs)
 
 
 def _pool(pool: str) -> SkillPool:
@@ -50,9 +55,12 @@ def select(
     json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of a table."),
     pool: str = typer.Option(DEFAULT_POOL, "--pool", help="Shared SQLite pool file."),
     embedder: str = typer.Option("vllm", "--embedder", help="vllm (default) or hashing."),
+    gpu_memory_utilization: Optional[float] = typer.Option(
+        None, "--gpu-memory-utilization", help="vLLM CPU RAM fraction to reserve (lower on constrained machines)."
+    ),
 ):
     """Rank skills by similarity to QUERY (metadata + scores only)."""
-    result = _service(pool, embedder).select(query, k=top_k, threshold=threshold)
+    result = _service(pool, embedder, gpu_memory_utilization).select(query, k=top_k, threshold=threshold)
     if json_out:
         typer.echo(result.model_dump_json(indent=2))
         return
@@ -171,9 +179,12 @@ def list_skills(
 def reindex(
     pool: str = typer.Option(DEFAULT_POOL, "--pool"),
     embedder: str = typer.Option("vllm", "--embedder"),
+    gpu_memory_utilization: Optional[float] = typer.Option(
+        None, "--gpu-memory-utilization", help="vLLM CPU RAM fraction to reserve."
+    ),
 ):
     """Rebuild the index, re-embedding stale or signature-mismatched skills."""
-    size = _service(pool, embedder).reindex()
+    size = _service(pool, embedder, gpu_memory_utilization).reindex()
     typer.echo(f"reindexed {size} skill(s)")
 
 
@@ -183,13 +194,16 @@ def serve(
     port: int = typer.Option(8000, "--port"),
     pool: str = typer.Option(DEFAULT_POOL, "--pool"),
     embedder: str = typer.Option("vllm", "--embedder"),
+    gpu_memory_utilization: Optional[float] = typer.Option(
+        None, "--gpu-memory-utilization", help="vLLM CPU RAM fraction to reserve."
+    ),
 ):
     """Start the shared HTTP service."""
     import uvicorn
 
     from .api import create_app
 
-    uvicorn.run(create_app(_service(pool, embedder)), host=host, port=port)
+    uvicorn.run(create_app(_service(pool, embedder, gpu_memory_utilization)), host=host, port=port)
 
 
 if __name__ == "__main__":
