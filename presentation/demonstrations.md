@@ -54,10 +54,10 @@ is picked. The five seeds above pass only `--description`, so the body falls bac
 a toy. To ingest a real skill, keep selection cheap and load the body lazily:
 
 ```bash
-.venv/bin/skill-picker add --pool data/demo.db --id git-bisect-helper \
-  --name "Git Bisect Helper" \
-  --description "Guide a git bisect session to locate a regression commit." \  # frontmatter description → embedded
-  --body @skills/git-bisect-helper/SKILL.md                                    # full body → lazy-loaded only
+.venv/bin/skill-picker add --pool data/demo.db --id k8s-debug \
+  --name "Kubernetes Debugger" \
+  --description "Diagnose failing pods, crashloops, and networking issues in a Kubernetes cluster." \  # → embedded
+  --body @skills/k8s-debug/SKILL.md                                                                    # → lazy-loaded only
 ```
 
 ---

@@ -232,10 +232,16 @@ task query ─► vLLM embed (query:) ─┐
 **Add skills to the shared pool**
 
 ```
-$ skill-picker add --id git-bisect-helper --name "Git Bisect Helper" \
-    --description "Guide a git bisect session to locate a regression commit." \
-    --body @skills/git-bisect-helper/SKILL.md
+$ skill-picker add --id k8s-debug --name "Kubernetes Debugger" \
+    --description "Diagnose failing pods, crashloops, and networking issues in a Kubernetes cluster." \
+    --body @skills/k8s-debug/SKILL.md
 $ skill-picker list
+id                  tags   name
+git-bisect-helper          Git Bisect Helper
+k8s-debug                  Kubernetes Debugger
+pdf-table-extract          PDF Table Extractor
+regex-builder              Regex Builder
+sql-explainer              SQL Query Explainer
 ```
 
 > **Notes**: Show that adding is cheap and the pool is one SQLite file (zero deployment).
@@ -250,15 +256,17 @@ $ skill-picker list
 **One task, ranked candidates**
 
 ```
-$ skill-picker select "find which commit broke the build" -k 3
+$ skill-picker select "my pods keep crashing in the cluster" -k 3
 score   id                  name
-0.83    git-bisect-helper   Git Bisect Helper
-0.34    sql-explainer       SQL Query Explainer
-0.21    pdf-table-extract   PDF Table Extractor
+0.86    k8s-debug           Kubernetes Debugger
+0.74    git-bisect-helper   Git Bisect Helper
+0.74    regex-builder       Regex Builder
 ```
 
-> **Notes**: The money moment. Point at the scores — observable, explainable. 0.83 on the
-> match is a *real* vLLM e5 number. No full descriptions returned here.
+> **Notes**: The money moment. Real vLLM e5 numbers. The query shares **no** keywords with the
+> skill — "pods / crashing / cluster" → Kubernetes Debugger — yet it wins by a clear margin
+> (0.86 vs 0.74). That's semantic, not lexical. No full descriptions returned here. (e5 cosines
+> cluster high; the *ranking* is the signal, not the absolute spread.)
 
 ---
 
@@ -267,13 +275,14 @@ score   id                  name
 **Load the full text only for the winner**
 
 ```
-$ skill-picker show git-bisect-helper
-# Git Bisect Helper  (git-bisect-helper)
-Guide a git bisect session to locate a regression commit.
+$ skill-picker show k8s-debug
+# Kubernetes Debugger  (k8s-debug)
+<full SKILL.md body — the part we never load during selection>
 ```
 
-> **Notes**: This is the whole thesis in one command — full description fetched only for the
-> chosen skill, not the pool. Contrast with "load everything".
+> **Notes**: This is the whole thesis in one command — the full body is fetched only for the
+> chosen skill, not the pool. `select` ranked on the short description; `show`/`load` is the only
+> path that returns the body. Contrast with "load everything every turn".
 
 ---
 
@@ -297,12 +306,12 @@ $ curl localhost:8000/v1/health      # model signature + pool size
 
 **It works, and it's measurable**
 
-- **0.83** cosine between a task query and its matching skill (real e5-small-v2)
+- **0.86** cosine between a task query and its matching skill, no shared keywords (real e5-small-v2)
 - **< 1s** selection for 100+ skills
 - **≥ 80%** less content needed to choose a skill vs. loading everything
 - **32** passing tests (retrieval quality, context efficiency, consistency, perf)
 
-> **Notes**: Tie each number to a slide: 0.83 → vLLM works; <1s → brute force is fine; 80% →
+> **Notes**: Tie each number to a slide: 0.86 → vLLM works; <1s → brute force is fine; 80% →
 > the point; tests → it's real.
 
 ---
