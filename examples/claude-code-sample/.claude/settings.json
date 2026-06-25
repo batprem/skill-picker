@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(skill-picker:*)",
+      "Bash(python seed.py)",
+      "Bash(python seed.py:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

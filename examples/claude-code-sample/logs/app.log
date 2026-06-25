@@ -1,0 +1,18 @@
+2026-06-18T08:01:12Z INFO  auth: signup succeeded for alice@example.com (plan=free)
+2026-06-18T08:03:44Z INFO  auth: login ok user=bob.smith@corp.co.uk ip=10.0.4.12
+2026-06-18T08:04:09Z WARN  auth: login failed (bad password) user=bob.smith@corp.co.uk attempts=3
+2026-06-18T08:07:51Z INFO  billing: invoice #4471 sent to charlie+newsletter@gmail.com amount=29.00
+2026-06-18T08:09:02Z INFO  worker: healthcheck ok queue_depth=0 latency_ms=12
+2026-06-18T08:11:33Z ERROR smtp: 550 mailbox unavailable while delivering to no-reply@sub.mail.example.org
+2026-06-18T08:12:48Z INFO  auth: password reset requested for U.SER@EXAMPLE.COM
+2026-06-18T08:14:20Z INFO  support: ticket TKT-8821 opened by maria.garcia@acme.io priority=high
+2026-06-18T08:15:05Z DEBUG http: GET /api/v1/profile?email=dev.test%40example.com 200 8ms
+2026-06-18T08:16:39Z INFO  webhook: delivered event=user.created to https://hooks.partner.com/in
+2026-06-18T08:18:57Z WARN  rate-limit: throttling sender team-alerts@notifications.example.com
+2026-06-18T08:21:14Z INFO  auth: signup succeeded for j.o'neil@example.com (plan=pro)
+2026-06-18T08:22:40Z ERROR db: deadlock detected on table sessions, retrying tx=00f3a1
+2026-06-18T08:24:18Z INFO  billing: refund issued to Charlie+Newsletter@Gmail.com amount=29.00
+2026-06-18T08:27:03Z INFO  audit: role change by admin@example.com -> granted owner to lee.wong@example.com
+2026-06-18T08:29:46Z INFO  worker: processed 512 jobs in 4.1s
+2026-06-18T08:31:22Z WARN  smtp: greylisted retry scheduled for q.public@mail-relay.example.net
+2026-06-18T08:33:10Z INFO  auth: logout user=alice@example.com session=ab12cd
